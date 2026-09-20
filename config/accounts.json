@@ -8,13 +8,6 @@
       "upload_log": "cache/youtube_upload_log_youtube_main.json"
     },
     {
-      "id": "youtube_account2",
-      "name": "YouTube Account 2",
-      "platform": "youtube",
-      "token_file": "cache/youtube_token_account2.json",
-      "upload_log": "cache/youtube_upload_log_account2.json"
-    },
-    {
       "id": "instagram_main",
       "name": "Instagram Main",
       "platform": "instagram",

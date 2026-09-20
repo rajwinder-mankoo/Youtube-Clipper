@@ -1,10 +1,10 @@
 {
-  "ffmpeg_path": "D:\\Personal\\YT Auto Bot\\ffmpeg\\bin\\ffmpeg.exe",
+  "ffmpeg_path": "",
   "whisper_model": "small",
   "schedule_interval_hours": 12,
   "start_delay_minutes": 10,
   "privacy_status": "scheduled",
-  "auto_upload_default": true,
+  "auto_upload_default": false,
   "channel_keywords": [],
   "default_channel_keywords": [
     "shorts",

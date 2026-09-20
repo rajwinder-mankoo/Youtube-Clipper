@@ -3,39 +3,45 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>YT Auto Bot</title>
-<link rel="stylesheet" href="/style.css?v=3">
+<meta name="description" content="Private control center for generating, reviewing, framing, and publishing YouTube Shorts.">
+<meta name="theme-color" content="#0c0f0e">
+<title>YouTube Clipper — Control center</title>
+<link rel="stylesheet" href="/style.css?v=7">
 </head>
 <body>
+<a class="skip-link" href="#workspace">Skip to workspace</a>
 <div class="shell">
   <aside class="sidebar">
-    <div class="brand"><span class="brand-dot"></span><div><b>YT Auto Bot</b><small>Shorts Manager</small></div></div>
-    <nav id="mainNav">
-      <button type="button" class="nav active" data-section="dashboard">Dashboard</button>
-      <button type="button" class="nav" data-section="generate">Generate Shorts</button>
-      <button type="button" class="nav" data-section="videos">Videos</button>
-      <button type="button" class="nav" data-section="activity">Activity</button>
-      <button type="button" class="nav" data-section="settings">Accounts & Settings</button>
+    <div class="brand"><span class="brand-mark">YC</span><div><b>YouTube Clipper</b><small>Private studio</small></div></div>
+    <div class="nav-label">Workspace</div>
+    <nav id="mainNav" aria-label="Primary navigation">
+      <button type="button" class="nav active" data-section="dashboard"><span class="nav-icon">01</span><span>Overview</span></button>
+      <button type="button" class="nav" data-section="generate"><span class="nav-icon">02</span><span>Generate</span></button>
+      <button type="button" class="nav" data-section="videos"><span class="nav-icon">03</span><span>Library</span></button>
+      <button type="button" class="nav" data-section="activity"><span class="nav-icon">04</span><span>Activity</span></button>
+      <button type="button" class="nav" data-section="settings"><span class="nav-icon">05</span><span>Accounts</span></button>
+      <button type="button" class="nav" data-section="storage"><span class="nav-icon">06</span><span>Storage</span></button>
+      <button type="button" class="nav" data-section="analytics"><span class="nav-icon">07</span><span>Analytics</span></button>
     </nav>
-    <div class="side-note">Local only<br><span>Runs on this PC</span></div>
+    <div class="side-note"><span class="live-dot"></span><div><b>Private connection</b><span id="connectionMode">Detecting address…</span></div></div>
   </aside>
 
-  <main>
-    <header>
-      <div><div class="eyebrow">CONTROL CENTER</div><h1 id="pageTitle">Dashboard</h1></div>
-      <button type="button" class="refresh" id="refreshBtn">↻ Refresh</button>
+  <main id="workspace">
+    <header class="page-header">
+      <div><div class="eyebrow">Clip operations</div><h1 id="pageTitle">Overview</h1><p id="pageSubtitle" class="page-subtitle">Generate, review, and publish from one private workspace.</p></div>
+      <div class="header-actions"><span class="sync-state" id="syncState" title="Waiting for the first dashboard update"><span class="live-dot"></span><span id="syncLabel">Connecting</span><time id="syncTime">—</time></span><button type="button" class="refresh" id="refreshBtn"><span aria-hidden="true">↻</span> Refresh</button></div>
     </header>
 
     <section id="dashboard" class="section active">
       <div class="stats">
-        <div class="stat"><span>Rendered Shorts</span><strong id="statVideos">0</strong></div>
-        <div class="stat"><span>Pending</span><strong id="statPending">0</strong></div>
-        <div class="stat"><span>Uploaded</span><strong id="statUploaded">0</strong></div>
-        <div class="stat"><span>Running Jobs</span><strong id="statRunning">0</strong></div>
+        <article class="stat stat-primary"><span>Rendered Shorts</span><strong id="statVideos">—</strong><small>Ready in your library</small></article>
+        <article class="stat"><span>Pending review</span><strong id="statPending">—</strong><small>Not uploaded yet</small></article>
+        <article class="stat"><span>Published</span><strong id="statUploaded">—</strong><small>Recorded in upload logs</small></article>
+        <article class="stat"><span>Active jobs</span><strong id="statRunning">—</strong><small>Generation and uploads</small></article>
       </div>
 
       <div class="panel quick-generate">
-        <div class="panel-head"><div><h2>Generate Shorts from YouTube</h2><p>Choose an account, paste a YouTube link, and let the existing main.py create the Shorts.</p></div></div>
+        <div class="panel-head"><div><span class="section-kicker">Quick start</span><h2>Generate from YouTube</h2><p>Choose a destination, paste a source link, and start a background generation job.</p></div><span class="panel-index">01</span></div>
         <div class="generate-inline">
           <label>Account<select id="generateAccount"></select></label>
           <label class="url-field">YouTube URL<input id="generateUrl" type="url" placeholder="https://www.youtube.com/watch?v=..." autocomplete="off"></label>
@@ -45,7 +51,7 @@
       </div>
 
       <div class="panel">
-        <div class="panel-head"><div><h2>Upload Shorts</h2><p>Pick the destination account, then select the Shorts you want to publish.</p></div></div>
+        <div class="panel-head"><div><span class="section-kicker">Review queue</span><h2>Prepare Shorts for upload</h2><p>Select finished clips, refine framing, then review the exact publishing payload.</p></div><span class="panel-index">02</span></div>
         <div class="controls">
           <label>Platform<select id="platform"><option value="youtube">YouTube</option><option value="instagram">Instagram</option></select></label>
           <label>Account<select id="account"></select></label>
@@ -59,7 +65,7 @@
         </div>
         <div id="videoGrid" class="video-grid"></div>
         <div class="action-row">
-          <button type="button" class="primary" id="uploadBtn">Upload selected</button>
+          <button type="button" class="primary" id="uploadBtn">Prepare upload</button>
           <span id="uploadHint" class="hint"></span>
         </div>
       </div>
@@ -67,7 +73,7 @@
 
     <section id="generate" class="section">
       <div class="panel">
-        <div class="panel-head"><div><h2>Generate Shorts</h2><p>This runs your existing main.py. New output is stored separately under the selected account.</p></div></div>
+        <div class="panel-head"><div><span class="section-kicker">New generation</span><h2>Create Shorts</h2><p>Start a background job from a YouTube source. Output stays grouped by account and run.</p></div><span class="panel-index">01</span></div>
         <div class="form-grid">
           <label>Account<select id="generateAccountFull"></select></label>
           <label class="url-field">YouTube URL<input id="generateUrlFull" type="url" placeholder="https://youtu.be/..." autocomplete="off"></label>
@@ -79,15 +85,21 @@
 
     <section id="videos" class="section">
       <div class="panel">
-        <div class="panel-head"><div><h2>Videos</h2><p>New generated Shorts are grouped by account. Legacy output remains visible as unassigned content.</p></div></div>
-        <div class="controls"><label>Show account<select id="videoAccountFilter"></select></label></div>
+        <div class="panel-head"><div><span class="section-kicker">Media library</span><h2>Rendered Shorts</h2><p>Inspect every generated clip, its account assignment, framing state, and file size.</p></div><span class="panel-index">03</span></div>
+        <div class="library-toolbar">
+          <label class="search-field">Search Shorts<input id="videoSearch" type="search" placeholder="Filename, folder, or account" autocomplete="off"></label>
+          <label>Show account<select id="videoAccountFilter"></select></label>
+          <label>Status<select id="videoStatusFilter"><option value="all">All statuses</option><option value="pending">Pending</option><option value="uploaded">Uploaded</option></select></label>
+          <label>Sort<select id="videoSort"><option value="newest">Newest first</option><option value="oldest">Oldest first</option><option value="largest">Largest first</option><option value="name">Name A–Z</option></select></label>
+        </div>
+        <div class="result-summary"><span id="videoResultCount">0 Shorts</span><span>Preview, select, or adjust framing without leaving the library.</span></div>
         <div id="videoTable" class="table"></div>
       </div>
     </section>
 
     <section id="activity" class="section">
       <div class="panel">
-        <div class="panel-head"><div><h2>Activity & History</h2><p>Generation and upload jobs persist locally in SQLite. Stopped/force-terminated jobs are recovered instead of remaining RUNNING.</p></div></div>
+        <div class="panel-head"><div><span class="section-kicker">Job telemetry</span><h2>Activity and history</h2><p>Follow live processing output and inspect persistent generation, review, and upload jobs.</p></div><span class="panel-index">04</span></div>
         <div class="tech-panel" id="technicalProgress">
           <div class="tech-head">
             <div><h3>Live Technical Progress</h3><p>Real-time backend output from the selected job. This shows the actual processing stage, timing, and recent technical log lines.</p></div>
@@ -95,28 +107,197 @@
           </div>
           <div class="tech-summary">
             <div><span>Stage</span><strong id="techStage">Waiting</strong></div>
-            <div><span>Status</span><strong id="techStatus">—</strong></div>
-            <div><span>Elapsed</span><strong id="techElapsed">—</strong></div>
-            <div><span>Progress</span><strong id="techProgressText">—</strong></div>
+            <div><span>Status</span><strong id="techStatus">-</strong></div>
+            <div><span>Elapsed</span><strong id="techElapsed">-</strong></div>
+            <div><span>Progress</span><strong id="techProgressText">-</strong></div>
           </div>
           <div class="tech-progress"><div id="techProgressBar"></div></div>
           <div class="tech-current" id="techCurrent">No active job selected.</div>
           <pre class="tech-console" id="techConsole">Select a job to view its live technical output.</pre>
         </div>
+        <div class="job-toolbar">
+          <label>Type<select id="jobTypeFilter"><option value="all">All job types</option><option value="generate">Generate</option><option value="prepare">Prepare review</option><option value="upload">Upload</option></select></label>
+          <label>Status<select id="jobStatusFilter"><option value="all">All statuses</option><option value="running">Running</option><option value="queued">Queued</option><option value="success">Success</option><option value="failed">Failed</option><option value="cancelled">Stopped</option></select></label>
+          <label class="search-field">Search history<input id="jobSearch" type="search" placeholder="Job ID, source, or account" autocomplete="off"></label>
+        </div>
+        <div class="result-summary"><span id="jobResultCount">0 jobs</span><span>Select any job to inspect its technical output.</span></div>
         <div id="jobs" class="table"></div>
+      </div>
+    </section>
+
+    <section id="storage" class="section">
+      <div class="panel">
+        <div class="panel-head"><div><span class="section-kicker">Disk management</span><h2>Storage cleanup</h2><p>Keep finished Shorts and publishing history while reclaiming space from old editing files.</p></div><span class="panel-index">06</span></div>
+        <div id="storageUsage" class="stats"></div>
+        <div class="controls">
+          <label>Files last modified<select id="storageAge"><option value="30">Over 30 days ago</option><option value="7">Over 7 days ago</option><option value="90">Over 90 days ago</option><option value="0">Any time</option></select></label>
+          <button type="button" class="refresh" id="storageScan">Scan storage</button>
+        </div>
+        <p class="hint">Deleting an editing copy may disable crop or caption editing until you regenerate it. Finished Shorts, captions, transcripts, downloads, and upload history are preserved. Stop command-line processing before cleanup.</p>
+        <div id="storageStatus" class="hint" role="status" aria-live="polite">Scan storage to preview eligible files.</div>
+        <div class="selection-bar"><button type="button" class="text-btn" id="storageSelectAll">Select all listed</button><button type="button" class="text-btn" id="storageClear">Clear selection</button><span id="storageSelection">0 selected</span></div>
+        <div id="storageFiles" class="storage-files"></div>
+        <div class="action-row"><button type="button" class="danger" id="storageDelete" disabled>Delete selected files</button></div>
       </div>
     </section>
 
     <section id="settings" class="section">
       <div class="panel">
-        <div class="panel-head"><div><h2>Accounts</h2><p>Accounts are read from <code>config/accounts.json</code>. Credentials stay on the backend.</p></div></div>
+        <div class="panel-head"><div><span class="section-kicker">Destinations</span><h2>Connected accounts</h2><p>Account credentials stay on the server and are never sent to the browser.</p></div><span class="panel-index">05</span></div>
         <div id="accounts" class="account-list"></div>
+        <div class="info-box"><b>Connect YouTube</b><p>This installation needs its own <code>oauth_web_client.json</code>. In Google Cloud, register this exact authorized redirect URI:</p><p><code id="oauthCallbackUrl">Detecting this dashboard’s address…</code></p></div>
         <div class="info-box"><b>Instagram</b><p>Instagram remains marked Not configured until a real Meta/Instagram publishing integration is added. It is not simulated.</p></div>
+      </div>
+    </section>
+
+    <section id="analytics" class="section">
+      <div class="panel">
+        <div class="panel-head"><div><span class="section-kicker">Performance feedback</span><h2>YouTube analytics</h2><p>Compare views and audience retention, then reuse the editing patterns that hold attention.</p></div><span class="panel-index">07</span></div>
+        <div class="controls"><label>Account<select id="analyticsAccount"></select></label><label>Period<select id="analyticsDays"><option value="28">Last 28 days</option><option value="90">Last 90 days</option><option value="365">Last year</option></select></label><button type="button" class="refresh" id="loadAnalytics">Load analytics</button></div>
+        <div id="analyticsStatus" class="hint">Connect an account with analytics access, then load its report.</div>
+        <div id="analyticsSummary" class="stats analytics-summary"></div>
+        <div id="analyticsRows" class="table analytics-table"></div>
       </div>
     </section>
   </main>
 </div>
-<div id="toast" class="toast"></div>
-<script src="/app.js?v=3"></script>
+<dialog id="reviewDialog" class="review-dialog" aria-labelledby="reviewTitle">
+  <div class="review-shell">
+    <div class="review-header">
+      <div>
+        <h2 id="reviewTitle">Review upload</h2>
+        <p id="reviewSummary">Preparing metadata and captions.</p>
+      </div>
+      <button type="button" class="icon-button" id="closeReviewBtn" aria-label="Close review">Close</button>
+    </div>
+    <div id="reviewState" class="review-state" role="status" aria-live="polite"></div>
+    <div id="reviewItems" class="review-items"></div>
+    <div class="review-footer">
+      <p>Uploading uses this approved snapshot. If validation changes it, the upload is refused.</p>
+      <div class="review-actions">
+        <button type="button" class="text-btn" id="cancelReviewBtn">Cancel</button>
+        <button type="button" class="primary" id="approveReviewBtn" disabled>Approve and upload</button>
+      </div>
+    </div>
+  </div>
+</dialog>
+<dialog id="previewDialog" class="preview-dialog" aria-labelledby="previewTitle">
+  <div class="preview-shell">
+    <div class="review-header">
+      <div><span class="section-kicker">Short preview</span><h2 id="previewTitle">Preview Short</h2><p id="previewSubtitle">Inspect the upload-ready render.</p></div>
+      <button type="button" class="icon-button" id="closePreviewBtn" aria-label="Close preview">Close</button>
+    </div>
+    <div class="preview-body">
+      <div class="preview-player"><video id="previewVideo" controls playsinline preload="metadata"></video></div>
+      <aside class="preview-details">
+        <div><span>Status</span><strong id="previewStatus">—</strong></div>
+        <div><span>Account</span><strong id="previewAccount">—</strong></div>
+        <div><span>File size</span><strong id="previewSize">—</strong></div>
+        <div><span>Modified</span><strong id="previewModified">—</strong></div>
+        <div><span>Framing</span><strong id="previewFraming">—</strong></div>
+        <div class="preview-actions">
+          <button type="button" class="primary" id="previewSelectBtn">Select for upload</button>
+          <button type="button" class="frame-button" id="previewFrameBtn">Adjust frame</button>
+        </div>
+      </aside>
+    </div>
+  </div>
+</dialog>
+<dialog id="frameDialog" class="frame-dialog" aria-labelledby="frameTitle">
+  <div class="frame-shell">
+    <div class="review-header">
+      <div>
+        <h2 id="frameTitle">Adjust Short framing</h2>
+        <p>Drag the crop to frame your subject. Move to another time and adjust it to add movement.</p>
+      </div>
+      <button type="button" class="icon-button" id="closeFrameBtn" aria-label="Close framing editor">Close</button>
+    </div>
+    <div id="frameState" class="review-state" role="status" aria-live="polite"></div>
+    <div class="frame-workspace">
+      <section class="frame-source-column">
+        <div class="frame-label"><b>1. Position your crop</b><span>Drag the box or use the presets</span></div>
+        <div class="frame-stage" id="frameStage">
+          <video id="frameSourceVideo" controls muted loop playsinline preload="metadata"></video>
+          <div id="cropOverlay" class="crop-overlay" tabindex="0" aria-label="Draggable 9 by 16 crop area"><span>9:16</span></div>
+        </div>
+      </section>
+      <section class="frame-preview-column">
+        <div class="frame-label"><b>Your Short</b><span>Live preview</span></div>
+        <canvas id="frameCanvas" width="270" height="480"></canvas>
+      </section>
+      <aside class="frame-controls">
+        <div class="position-presets" aria-label="Crop position presets">
+          <button type="button" class="frame-button" data-frame-preset="left">Left</button>
+          <button type="button" class="frame-button" data-frame-preset="center">Center</button>
+          <button type="button" class="frame-button" data-frame-preset="right">Right</button>
+        </div>
+        <label>Zoom <output id="frameZoomValue">1.00×</output>
+          <input id="frameZoom" type="range" min="1" max="3" step="0.01" value="1">
+        </label>
+        <p>Adjustments are added to the timeline automatically. One crop point holds still; multiple points create smooth movement.</p>
+        <button type="button" class="text-btn" id="centerFrameBtn">Center and reset zoom</button>
+        <div class="keyframe-editor">
+          <div class="keyframe-heading"><b>2. Add movement</b><output id="frameTimeValue">00:00.00</output></div>
+          <input id="frameTimeline" type="range" min="0" max="1" step="0.05" value="0" aria-label="Framing timeline">
+          <div class="crop-playback"><button type="button" class="frame-button" id="previousCropBtn" aria-label="Previous crop point">Previous</button><button type="button" class="frame-button" id="previewCropBtn">Play preview</button><button type="button" class="frame-button" id="nextCropBtn" aria-label="Next crop point">Next</button></div>
+          <p id="cropPointHint" role="status" aria-live="polite">Move the playhead, then drag the crop.</p>
+          <div class="keyframe-actions">
+            <button type="button" class="primary" id="setKeyframeBtn">Add crop point here</button>
+            <button type="button" class="danger" id="deleteKeyframeBtn" disabled>Remove point</button>
+          </div>
+          <div id="keyframeList" class="keyframe-list" aria-label="Crop points"></div>
+        </div>
+        <button type="button" class="text-btn" id="undoCropBtn" disabled>Undo last change</button>
+        <details class="frame-current">
+          <summary>Compare with saved Short</summary>
+          <video id="frameResultVideo" controls playsinline preload="metadata"></video>
+        </details>
+      </aside>
+    </div>
+    <div class="review-footer">
+      <p>Changes stay in this editor until you save. Saving creates the updated Short.</p>
+      <div class="review-actions">
+        <button type="button" class="text-btn" id="cancelFrameBtn">Cancel</button>
+        <button type="button" class="primary" id="saveFrameBtn">Save crop</button>
+      </div>
+    </div>
+  </div>
+</dialog>
+<dialog id="trimDialog" class="preview-dialog" aria-labelledby="trimTitle">
+  <div class="preview-shell">
+    <div class="review-header">
+      <div><h2 id="trimTitle">Trim Short</h2><p>Choose the exact beginning and ending of the finished clip.</p></div>
+      <button type="button" class="icon-button" id="closeTrimBtn">Close</button>
+    </div>
+    <div id="trimStatus" class="review-state show" role="status" aria-live="polite"></div>
+    <div class="trim-workspace" id="trimWorkspace">
+      <video id="trimVideo" controls playsinline preload="metadata"></video>
+      <div class="trim-controls">
+        <div class="trim-readout"><span>New duration</span><strong id="trimDuration">—</strong></div>
+        <label>Start <output id="trimStartValue">00:00.00</output><input id="trimStart" type="range" min="0" max="1" step="0.05" value="0"></label>
+        <label>End <output id="trimEndValue">00:00.00</output><input id="trimEnd" type="range" min="0" max="1" step="0.05" value="1"></label>
+        <div class="trim-actions"><button type="button" class="frame-button" id="setTrimStart">Set start to playhead</button><button type="button" class="frame-button" id="setTrimEnd">Set end to playhead</button></div>
+        <button type="button" class="text-btn" id="previewTrim">Preview selected range</button>
+        <p class="hint">Saving trims the Short and its editing copies. Regenerate the source to recover removed sections.</p>
+      </div>
+    </div>
+    <div class="review-footer"><p>The saved clip remains editable and must stay below 59 seconds.</p><button type="button" class="primary" id="saveTrimBtn">Save trim</button></div>
+  </div>
+</dialog>
+<dialog id="captionDialog" class="review-dialog" aria-labelledby="captionTitle">
+  <div class="review-shell">
+    <div class="review-header"><div><h2 id="captionTitle">Edit captions</h2><p>Correct the words and timing, then save the updated Short.</p></div><button type="button" class="icon-button" id="closeCaptions">Close</button></div>
+    <div id="captionStatus" class="review-state show" role="status" aria-live="polite"></div>
+    <div class="caption-workspace" id="captionWorkspace">
+      <section class="caption-preview"><div class="caption-player"><video id="captionVideo" controls playsinline preload="metadata"></video><div id="captionOverlay" aria-hidden="true"></div></div><p class="hint">Text preview uses the clean video. Edited lines use steady text instead of word highlighting.</p><div class="caption-style" id="captionStyle"><b>Caption style</b><label>Font<input data-style="font_name" type="text" maxlength="80" value="Arial"></label><div class="caption-style-grid"><label>Size<input data-style="font_size" type="number" min="20" max="120" step="1"></label><label>Position<select data-style="position"><option value="bottom">Bottom</option><option value="middle">Middle</option><option value="top">Top</option></select></label><label>Text color<input data-style="text_color" type="color"></label><label>Outline color<input data-style="outline_color" type="color"></label><label>Outline<input data-style="outline" type="number" min="0" max="10" step="0.5"></label><label>Shadow<input data-style="shadow" type="number" min="0" max="10" step="0.5"></label><label>Safe margin<input data-style="margin" type="number" min="20" max="600" step="10"></label></div></div></section>
+      <section class="caption-edit"><div class="caption-list" id="captionRows"></div><button type="button" class="text-btn" id="addCaption">Add line at playhead</button></section>
+    </div>
+    <div class="review-footer"><p>Updates this local Short and future subtitle uploads. Videos already on YouTube are unchanged.</p><button type="button" class="primary" id="saveCaptions" disabled>Save captions</button></div>
+  </div>
+</dialog>
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
+<script src="/app.js?v=11"></script>
+<script src="/trim.js?v=1"></script>
+<script src="/captions.js?v=2"></script>
 </body>
 </html>
