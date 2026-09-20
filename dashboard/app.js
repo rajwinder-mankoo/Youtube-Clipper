@@ -19,6 +19,8 @@ let cropSaving = false;
 let selectedFrameKeyframeTime = null;
 let framePositionDirty = false;
 let framePreviewAnimation = null;
+let scheduleData = null;
+let calendarMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
 
 const $ = id => document.getElementById(id);
 
@@ -123,6 +125,7 @@ function renderAccountSelects() {
     yt.map(a => `<option value="${esc(a.id)}">${esc(a.name)}</option>`).join('');
   if ([...filter.options].some(o => o.value === old)) filter.value = old;
   if ($('analyticsAccount')) setOptions($('analyticsAccount'), yt, 'No YouTube account configured');
+  if ($('scheduleAccount')) setOptions($('scheduleAccount'), yt, 'No YouTube account configured');
 }
 
 function renderUploadAccounts() {
@@ -388,6 +391,95 @@ async function loadAnalytics() {
     $('analyticsStatus').textContent = error.message;
     $('analyticsSummary').replaceChildren(); $('analyticsRows').replaceChildren();
   } finally { setBusy($('loadAnalytics'), false, 'Load analytics'); }
+}
+
+function scheduleDateKey(value) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+}
+
+function renderSchedule() {
+  if (!scheduleData) return;
+  const queue = scheduleData.queue || [];
+  const slots = scheduleData.projected_slots || [];
+  const settings = scheduleData.settings || {};
+  $('scheduleQueued').textContent = String(queue.length);
+  $('scheduleNext').textContent = slots[0] ? new Date(slots[0]).toLocaleString([], {month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit'}) : 'Unavailable';
+  $('scheduleCadence').textContent = `Every ${settings.interval_hours || 12} hours`;
+  $('scheduleSource').textContent = scheduleData.source === 'youtube' ? 'Live YouTube' : 'Local history';
+  $('scheduleFreshness').textContent = scheduleData.refreshed_at ? `Updated ${new Date(scheduleData.refreshed_at).toLocaleTimeString([], {hour: 'numeric', minute: '2-digit'})}` : 'Not refreshed';
+  $('scheduleInterval').value = String(settings.interval_hours ?? 12);
+  $('scheduleDelay').value = String(settings.start_delay_minutes ?? 10);
+  $('queueCount').textContent = `${queue.length} item${queue.length === 1 ? '' : 's'}`;
+  $('scheduleQueue').innerHTML = queue.map((item, index) => `<article class="schedule-item">
+    <span class="schedule-order">${String(index + 1).padStart(2, '0')}</span>
+    <div><b>${esc(item.title)}</b><time datetime="${esc(item.publish_at)}">${esc(formatDate(item.publish_at))}</time></div>
+    ${item.video_id ? `<a href="https://studio.youtube.com/video/${encodeURIComponent(item.video_id)}/edit" target="_blank" rel="noopener">Open</a>` : ''}
+  </article>`).join('') || emptyState('00', 'No future videos', 'The next prepared batch will begin after the configured first upload delay.');
+  $('scheduleStatus').classList.toggle('warning', scheduleData.source !== 'youtube');
+  $('scheduleStatus').textContent = scheduleData.warning
+    ? `Showing local history because YouTube could not be reached: ${scheduleData.warning}`
+    : `Live queue loaded. New Shorts will be placed after the final item shown here.`;
+  renderScheduleCalendar();
+}
+
+function renderScheduleCalendar() {
+  const queue = scheduleData?.queue || [];
+  const year = calendarMonth.getFullYear();
+  const month = calendarMonth.getMonth();
+  $('calendarTitle').textContent = calendarMonth.toLocaleDateString([], {month: 'long', year: 'numeric'});
+  const firstWeekday = new Date(year, month, 1).getDay();
+  const days = new Date(year, month + 1, 0).getDate();
+  const today = scheduleDateKey(new Date());
+  const cells = [];
+  for (let index = 0; index < firstWeekday; index += 1) cells.push('<div class="calendar-day muted" aria-hidden="true"></div>');
+  for (let day = 1; day <= days; day += 1) {
+    const key = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    const items = queue.filter(item => scheduleDateKey(item.publish_at) === key);
+    cells.push(`<div class="calendar-day ${key === today ? 'today' : ''} ${items.length ? 'has-items' : ''}"><span>${day}</span>${items.slice(0, 3).map(item => `<button type="button" title="${esc(item.title)} at ${esc(formatDate(item.publish_at))}">${esc(new Date(item.publish_at).toLocaleTimeString([], {hour: 'numeric', minute: '2-digit'}))}</button>`).join('')}${items.length > 3 ? `<small>+${items.length - 3} more</small>` : ''}</div>`);
+  }
+  $('scheduleCalendar').innerHTML = cells.join('');
+}
+
+async function loadSchedule() {
+  const account = $('scheduleAccount').value;
+  if (!account) return;
+  setBusy($('refreshSchedule'), true, 'Loading...');
+  $('scheduleStatus').textContent = 'Reading the YouTube publishing queue.';
+  try {
+    const response = await fetch(`/api/schedule?account_id=${encodeURIComponent(account)}&_=${Date.now()}`, {cache: 'no-store'});
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || 'Schedule request failed.');
+    scheduleData = data;
+    const next = data.queue?.[0]?.publish_at || data.projected_slots?.[0];
+    if (next) {
+      const date = new Date(next);
+      calendarMonth = new Date(date.getFullYear(), date.getMonth(), 1);
+    }
+    renderSchedule();
+  } catch (error) {
+    $('scheduleStatus').textContent = error.message;
+    $('scheduleStatus').classList.add('warning');
+  } finally {
+    setBusy($('refreshSchedule'), false, 'Refresh queue');
+  }
+}
+
+async function saveScheduleCadence() {
+  setBusy($('saveSchedule'), true, 'Saving...');
+  try {
+    await postJson('/api/schedule/settings', {
+      interval_hours: Number($('scheduleInterval').value),
+      start_delay_minutes: Number($('scheduleDelay').value),
+    });
+    toast('Publishing cadence saved.');
+    await loadSchedule();
+  } catch (error) {
+    toast(error.message);
+  } finally {
+    setBusy($('saveSchedule'), false, 'Save cadence');
+  }
 }
 
 function togglePath(path) {
@@ -955,6 +1047,7 @@ function nav(section) {
   });
   const pages = {
     storage: ['Storage', 'Inspect disk usage and clean up old editing files.'],
+    scheduler: ['Scheduler', 'Plan future releases and inspect the live YouTube queue.'],
     analytics: ['Analytics', 'Learn which Shorts and editing patterns retain viewers.'],
     settings: ['Accounts', 'Manage publishing destinations and connection status.'],
     generate: ['Generate', 'Create a new batch of Shorts from a YouTube source.'],
@@ -966,6 +1059,7 @@ function nav(section) {
   $('pageTitle').textContent = page[0];
   $('pageSubtitle').textContent = page[1];
   if (section === 'storage') scanStorage();
+  if (section === 'scheduler') loadSchedule();
 }
 
 function toast(message) {
@@ -984,6 +1078,11 @@ function bindEvents() {
     if (button) accountAction(button).catch(error => toast(error.message));
   });
   $('loadAnalytics').addEventListener('click', loadAnalytics);
+  $('scheduleAccount').addEventListener('change', loadSchedule);
+  $('refreshSchedule').addEventListener('click', loadSchedule);
+  $('saveSchedule').addEventListener('click', saveScheduleCadence);
+  $('calendarPrevious').addEventListener('click', () => { calendarMonth = new Date(calendarMonth.getFullYear(), calendarMonth.getMonth() - 1, 1); renderScheduleCalendar(); });
+  $('calendarNext').addEventListener('click', () => { calendarMonth = new Date(calendarMonth.getFullYear(), calendarMonth.getMonth() + 1, 1); renderScheduleCalendar(); });
   window.addEventListener('message', event => {
     if (event.origin === location.origin && event.data === 'youtube-oauth-complete') loadState();
   });
@@ -1004,6 +1103,7 @@ function bindEvents() {
     setBusy($('refreshBtn'), true, 'Refreshing…');
     await loadState();
     if (currentSection === 'storage') await scanStorage();
+    if (currentSection === 'scheduler') await loadSchedule();
     setBusy($('refreshBtn'), false, 'Refresh');
   });
   $('platform').addEventListener('change', () => { selected.clear(); renderAccountSelects(); renderUploadAccounts(); renderVideos(); updateCount(); });

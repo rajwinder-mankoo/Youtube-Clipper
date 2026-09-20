@@ -38,6 +38,7 @@ from youtube_clipper.publishing.payload import (
 )
 from youtube_clipper import config as bot_config
 from youtube_clipper.publishing.storage import upload_log_lock, atomic_save_json
+from youtube_clipper.publishing.scheduler import next_schedule_slots as append_schedule_slots
 
 # ============================================================
 # CONFIG
@@ -111,6 +112,7 @@ DRY_RUN = (
 DRY_RUN_REPORT_DIR = OUTPUT_DIR / "dry-run-reports"
 DRY_RUN_REPORT_PATH = os.environ.get("YT_AUTO_BOT_DRY_RUN_REPORT", "").strip()
 APPROVED_REPORT_PATH = os.environ.get("YT_AUTO_BOT_APPROVED_REPORT", "").strip()
+LIVE_SCHEDULE = unattended_upload_enabled(os.environ.get("YT_AUTO_BOT_LIVE_SCHEDULE"))
 
 # Prevent duplicate uploads by recording uploaded files.
 UPLOAD_LOG = Path(os.environ.get(
@@ -697,39 +699,13 @@ def reconcile_upload_log(youtube, upload_log):
 
 
 def next_schedule_slots(videos, count):
-    """Return the earliest free future publishing slots.
-
-    Existing scheduled videos occupy their publishAt slots. Unlike the old
-    max(publishAt) + interval approach, this deliberately fills holes created
-    when a user deletes a scheduled video in YouTube Studio.
-    """
-    if count <= 0:
-        return []
-
-    now = datetime.now(timezone.utc)
-    cursor = now + timedelta(minutes=START_DELAY_MINUTES)
-    occupied = set()
-
-    for video in videos:
-        status = video.get("status", {})
-        publish_at = iso_to_dt(status.get("publishAt"))
-        if (
-            publish_at
-            and publish_at > now
-            and status.get("privacyStatus") == "private"
-        ):
-            # Normalize to the scheduler's minute precision.
-            occupied.add(publish_at.replace(second=0, microsecond=0))
-
-    slots = []
-    while len(slots) < count:
-        candidate = cursor.replace(second=0, microsecond=0)
-        if candidate not in occupied:
-            slots.append(candidate)
-            occupied.add(candidate)
-        cursor = candidate + timedelta(minutes=SCHEDULE_INTERVAL_MINUTES)
-
-    return slots
+    """Append new slots after the latest future channel schedule."""
+    return append_schedule_slots(
+        videos,
+        count,
+        interval_minutes=SCHEDULE_INTERVAL_MINUTES,
+        start_delay_minutes=START_DELAY_MINUTES,
+    )
 
 
 def validate_before_upload(video_path, metadata):
@@ -1050,18 +1026,20 @@ def _main():
         "youtube_api_calls_made": False,
         "account": os.environ.get("YT_AUTO_BOT_ACCOUNT_NAME", "default"),
         "publishing_mode": PRIVACY_STATUS,
-        "schedule_basis": (
-            "local upload log only; remote channel changes are not queried"
-            if DRY_RUN
-            else "current YouTube channel state"
-        ),
+        "schedule_basis": "current YouTube channel state" if (not DRY_RUN or LIVE_SCHEDULE) else "local upload log only; remote channel changes are not queried",
         "items": [],
         "skipped": [],
     }
 
     if DRY_RUN:
-        youtube = None
-        existing = scheduled_videos_from_upload_log(upload_log)
+        if LIVE_SCHEDULE:
+            youtube = get_youtube_service()
+            existing = get_channel_uploads(youtube)
+            report["youtube_oauth_used"] = True
+            report["youtube_api_calls_made"] = True
+        else:
+            youtube = None
+            existing = scheduled_videos_from_upload_log(upload_log)
     else:
         youtube = get_youtube_service()
         report["youtube_oauth_used"] = True
@@ -1164,7 +1142,7 @@ def _main():
         return
 
     scheduled_count = (
-        max(0, len(pending) - 1)
+        len(pending)
         if PRIVACY_STATUS == "scheduled" and not approved_items
         else 0
     )
@@ -1431,7 +1409,10 @@ def _main():
         print("=" * 70)
         print(f"Review report: {report_path}")
         if PRIVACY_STATUS == "scheduled":
-            print("Schedule times are estimates based only on the local upload log.")
+            if LIVE_SCHEDULE:
+                print("Schedule times were calculated from the current YouTube queue.")
+            else:
+                print("Schedule times are estimates based on the local upload log.")
         return
 
     print()
@@ -1441,9 +1422,8 @@ def _main():
     print(f"Publishing mode: {PRIVACY_STATUS}")
     if PRIVACY_STATUS == "scheduled":
         print(f"Interval: {SCHEDULE_INTERVAL_HOURS:g} hours")
-        print("Newest pending upload: PUBLIC immediately")
-        print("Older pending uploads: scheduled PRIVATE -> PUBLIC")
-        print("Deleted YouTube slots: automatically reused on the next run")
+        print("All pending uploads: scheduled PRIVATE -> PUBLIC")
+        print("New uploads begin after the latest future channel schedule")
 
 
 if __name__ == "__main__":

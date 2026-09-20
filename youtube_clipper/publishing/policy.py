@@ -30,6 +30,4 @@ def publishing_action(mode: str, position: int, total: int) -> tuple[str, bool]:
         return "public", False
     if mode == "private":
         return "private", False
-    if position == total - 1:
-        return "public", False
     return "private", True

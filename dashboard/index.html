@@ -6,7 +6,7 @@
 <meta name="description" content="Private control center for generating, reviewing, framing, and publishing YouTube Shorts.">
 <meta name="theme-color" content="#0c0f0e">
 <title>YouTube Clipper — Control center</title>
-<link rel="stylesheet" href="/style.css?v=7">
+<link rel="stylesheet" href="/style.css?v=8">
 </head>
 <body>
 <a class="skip-link" href="#workspace">Skip to workspace</a>
@@ -19,9 +19,10 @@
       <button type="button" class="nav" data-section="generate"><span class="nav-icon">02</span><span>Generate</span></button>
       <button type="button" class="nav" data-section="videos"><span class="nav-icon">03</span><span>Library</span></button>
       <button type="button" class="nav" data-section="activity"><span class="nav-icon">04</span><span>Activity</span></button>
-      <button type="button" class="nav" data-section="settings"><span class="nav-icon">05</span><span>Accounts</span></button>
-      <button type="button" class="nav" data-section="storage"><span class="nav-icon">06</span><span>Storage</span></button>
-      <button type="button" class="nav" data-section="analytics"><span class="nav-icon">07</span><span>Analytics</span></button>
+      <button type="button" class="nav" data-section="scheduler"><span class="nav-icon">05</span><span>Scheduler</span></button>
+      <button type="button" class="nav" data-section="settings"><span class="nav-icon">06</span><span>Accounts</span></button>
+      <button type="button" class="nav" data-section="storage"><span class="nav-icon">07</span><span>Storage</span></button>
+      <button type="button" class="nav" data-section="analytics"><span class="nav-icon">08</span><span>Analytics</span></button>
     </nav>
     <div class="side-note"><span class="live-dot"></span><div><b>Private connection</b><span id="connectionMode">Detecting address…</span></div></div>
   </aside>
@@ -125,9 +126,39 @@
       </div>
     </section>
 
+    <section id="scheduler" class="section">
+      <div class="panel schedule-panel">
+        <div class="panel-head"><div><span class="section-kicker">Publishing queue</span><h2>Calendar and schedule</h2><p>See the live YouTube queue and control when each new batch begins.</p></div><span class="panel-index">05</span></div>
+        <div class="schedule-toolbar">
+          <label>Account<select id="scheduleAccount"></select></label>
+          <label>Hours between Shorts<input id="scheduleInterval" type="number" min="1" max="168" step="0.5" value="12"></label>
+          <label>First upload delay<input id="scheduleDelay" type="number" min="1" max="1440" step="1" value="10"></label>
+          <button type="button" class="primary" id="saveSchedule">Save cadence</button>
+          <button type="button" class="refresh" id="refreshSchedule">Refresh queue</button>
+        </div>
+        <div id="scheduleStatus" class="schedule-status" role="status" aria-live="polite">Choose a connected YouTube account to load its queue.</div>
+        <div class="schedule-metrics">
+          <article><span>Queued</span><strong id="scheduleQueued">0</strong><small>Future YouTube releases</small></article>
+          <article><span>Next open slot</span><strong id="scheduleNext">Not loaded</strong><small id="scheduleCadence">Cadence not loaded</small></article>
+          <article><span>Queue source</span><strong id="scheduleSource">Not loaded</strong><small id="scheduleFreshness">Waiting for refresh</small></article>
+        </div>
+        <div class="schedule-layout">
+          <section class="calendar-card" aria-labelledby="calendarTitle">
+            <div class="calendar-head"><button type="button" class="icon-button" id="calendarPrevious" aria-label="Previous month">Previous</button><h3 id="calendarTitle">Calendar</h3><button type="button" class="icon-button" id="calendarNext" aria-label="Next month">Next</button></div>
+            <div class="calendar-weekdays" aria-hidden="true"><span>Sun</span><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span></div>
+            <div id="scheduleCalendar" class="calendar-grid"></div>
+          </section>
+          <section class="queue-card" aria-labelledby="queueTitle">
+            <div class="queue-head"><div><span class="section-kicker">Chronological</span><h3 id="queueTitle">Upcoming Shorts</h3></div><span id="queueCount">0 items</span></div>
+            <div id="scheduleQueue" class="schedule-queue"></div>
+          </section>
+        </div>
+      </div>
+    </section>
+
     <section id="storage" class="section">
       <div class="panel">
-        <div class="panel-head"><div><span class="section-kicker">Disk management</span><h2>Storage cleanup</h2><p>Keep finished Shorts and publishing history while reclaiming space from old editing files.</p></div><span class="panel-index">06</span></div>
+        <div class="panel-head"><div><span class="section-kicker">Disk management</span><h2>Storage cleanup</h2><p>Keep finished Shorts and publishing history while reclaiming space from old editing files.</p></div><span class="panel-index">07</span></div>
         <div id="storageUsage" class="stats"></div>
         <div class="controls">
           <label>Files last modified<select id="storageAge"><option value="30">Over 30 days ago</option><option value="7">Over 7 days ago</option><option value="90">Over 90 days ago</option><option value="0">Any time</option></select></label>
@@ -143,7 +174,7 @@
 
     <section id="settings" class="section">
       <div class="panel">
-        <div class="panel-head"><div><span class="section-kicker">Destinations</span><h2>Connected accounts</h2><p>Account credentials stay on the server and are never sent to the browser.</p></div><span class="panel-index">05</span></div>
+        <div class="panel-head"><div><span class="section-kicker">Destinations</span><h2>Connected accounts</h2><p>Account credentials stay on the server and are never sent to the browser.</p></div><span class="panel-index">06</span></div>
         <div id="accounts" class="account-list"></div>
         <div class="info-box"><b>Connect YouTube</b><p>This installation needs its own <code>oauth_web_client.json</code>. In Google Cloud, register this exact authorized redirect URI:</p><p><code id="oauthCallbackUrl">Detecting this dashboard’s address…</code></p></div>
         <div class="info-box"><b>Instagram</b><p>Instagram remains marked Not configured until a real Meta/Instagram publishing integration is added. It is not simulated.</p></div>
@@ -152,7 +183,7 @@
 
     <section id="analytics" class="section">
       <div class="panel">
-        <div class="panel-head"><div><span class="section-kicker">Performance feedback</span><h2>YouTube analytics</h2><p>Compare views and audience retention, then reuse the editing patterns that hold attention.</p></div><span class="panel-index">07</span></div>
+        <div class="panel-head"><div><span class="section-kicker">Performance feedback</span><h2>YouTube analytics</h2><p>Compare views and audience retention, then reuse the editing patterns that hold attention.</p></div><span class="panel-index">08</span></div>
         <div class="controls"><label>Account<select id="analyticsAccount"></select></label><label>Period<select id="analyticsDays"><option value="28">Last 28 days</option><option value="90">Last 90 days</option><option value="365">Last year</option></select></label><button type="button" class="refresh" id="loadAnalytics">Load analytics</button></div>
         <div id="analyticsStatus" class="hint">Connect an account with analytics access, then load its report.</div>
         <div id="analyticsSummary" class="stats analytics-summary"></div>
@@ -296,7 +327,7 @@
   </div>
 </dialog>
 <div id="toast" class="toast" role="status" aria-live="polite"></div>
-<script src="/app.js?v=11"></script>
+<script src="/app.js?v=12"></script>
 <script src="/trim.js?v=1"></script>
 <script src="/captions.js?v=2"></script>
 </body>

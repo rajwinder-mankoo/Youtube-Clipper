@@ -33,6 +33,11 @@ from youtube_clipper.publishing.account_connections import (
     finish_youtube_connection,
 )
 from youtube_clipper.publishing.analytics import youtube_analytics
+from youtube_clipper.publishing.scheduler import (
+    future_scheduled_videos,
+    next_schedule_slots,
+    schedule_snapshot,
+)
 
 ROOT = bot_config.PROJECT_ROOT
 INPUT = bot_config.INPUT_DIR
@@ -178,6 +183,64 @@ def account_log_path(account):
     return CACHE / f"youtube_upload_log_{account['id']}.json"
 
 
+def schedule_settings():
+    return {
+        "interval_hours": float(bot_config.setting("schedule_interval_hours", 12)),
+        "start_delay_minutes": int(bot_config.setting("start_delay_minutes", 10)),
+    }
+
+
+def save_schedule_settings(interval_hours, start_delay_minutes):
+    interval = float(interval_hours)
+    delay = int(start_delay_minutes)
+    if not 1 <= interval <= 168:
+        raise ValueError("Schedule interval must be between 1 and 168 hours.")
+    if not 1 <= delay <= 1440:
+        raise ValueError("Start delay must be between 1 and 1440 minutes.")
+    try:
+        current = json.loads(bot_config.SETTINGS_PATH.read_text(encoding="utf-8"))
+        if not isinstance(current, dict):
+            current = {}
+    except (OSError, ValueError):
+        current = {}
+    current.update({
+        "schedule_interval_hours": interval,
+        "start_delay_minutes": delay,
+    })
+    atomic_save_json(bot_config.SETTINGS_PATH, current)
+    bot_config.SETTINGS.update(current)
+    return schedule_settings()
+
+
+def local_schedule_snapshot(account, settings, warning):
+    raw = []
+    for entry in load_log(account).values():
+        if not isinstance(entry, dict):
+            continue
+        raw.append({
+            "id": entry.get("video_id"),
+            "snippet": {"title": entry.get("title") or "Scheduled Short"},
+            "status": {
+                "privacyStatus": entry.get("privacyStatus"),
+                "publishAt": entry.get("publishAt"),
+            },
+        })
+    queue = future_scheduled_videos(raw)
+    slots = next_schedule_slots(
+        raw,
+        5,
+        interval_minutes=round(settings["interval_hours"] * 60),
+        start_delay_minutes=settings["start_delay_minutes"],
+    )
+    return {
+        "source": "local",
+        "warning": warning,
+        "refreshed_at": utc_now(),
+        "queue": queue,
+        "projected_slots": [item.isoformat().replace("+00:00", "Z") for item in slots],
+    }
+
+
 def load_log(account):
     path = account_log_path(account)
     if not path.exists():
@@ -314,6 +377,7 @@ def start_upload(platform, account, selected, dry_run=False, approved_report=Non
         env["YT_AUTO_BOT_DRY_RUN"] = "1"
         env["YT_AUTO_BOT_DRY_RUN_REPORT"] = str(report_path.resolve())
         env["YT_AUTO_BOT_AUTO_UPLOAD"] = "0"
+        env["YT_AUTO_BOT_LIVE_SCHEDULE"] = "1"
     else:
         env["YT_AUTO_BOT_AUTO_UPLOAD"] = "1"
     if approved_report:
@@ -733,6 +797,23 @@ class Handler(BaseHTTPRequestHandler):
             except Exception as exc:
                 return json_response(self, {"error": str(exc)}, 400)
 
+        if parsed.path == "/api/schedule":
+            account = account_by_id(parse_qs(parsed.query).get("account_id", [""])[0])
+            if not account or account.get("platform") != "youtube":
+                return json_response(self, {"error": "Choose a valid YouTube account."}, 400)
+            settings = schedule_settings()
+            try:
+                snapshot = schedule_snapshot(
+                    account,
+                    interval_hours=settings["interval_hours"],
+                    start_delay_minutes=settings["start_delay_minutes"],
+                )
+            except Exception as exc:
+                snapshot = local_schedule_snapshot(account, settings, str(exc))
+            snapshot["settings"] = settings
+            snapshot["account_id"] = account["id"]
+            return json_response(self, snapshot)
+
         if parsed.path == "/api/review":
             job_id = parse_qs(parsed.query).get("id", [""])[0]
             row, error = review_job(job_id)
@@ -899,6 +980,7 @@ class Handler(BaseHTTPRequestHandler):
             "/api/captions",
             "/api/trim",
             "/api/accounts/connect", "/api/accounts/disconnect",
+            "/api/schedule/settings",
         }:
             self.send_error(404)
             return
@@ -906,6 +988,12 @@ class Handler(BaseHTTPRequestHandler):
         try:
             length = int(self.headers.get("Content-Length", "0"))
             body = json.loads(self.rfile.read(length).decode("utf-8"))
+            if parsed.path == "/api/schedule/settings":
+                settings = save_schedule_settings(
+                    body.get("interval_hours"),
+                    body.get("start_delay_minutes"),
+                )
+                return json_response(self, {"ok": True, "settings": settings})
             if parsed.path in {"/api/accounts/connect", "/api/accounts/disconnect"}:
                 account = account_by_id(body.get("account_id"))
                 if not account or account.get("platform") != "youtube":

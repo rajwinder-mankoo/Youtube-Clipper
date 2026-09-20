@@ -238,11 +238,21 @@ Set `privacy_status` in `config/settings.json`:
 |---|---|
 | `private` | Every uploaded Short remains private. |
 | `public` | Every approved Short is published immediately. |
-| `scheduled` | The newest pending Short can publish immediately; remaining Shorts use future slots. |
+| `scheduled` | Every pending Short is queued after the latest future video already scheduled on YouTube. |
 
 The default scheduling interval is 12 hours. Offline dry-run schedule times are
 estimates based on the local upload log because a dry run never queries the
 channel.
+
+Open **Scheduler** in the dashboard to inspect the connected channel's future
+publishing queue on a calendar. You can change the hours between Shorts and the
+delay used when the channel has no future queue. In `scheduled` mode, the whole
+batch stays private until its assigned release times. When the channel already
+has scheduled videos, the new batch begins one interval after its final item.
+
+The Scheduler reads the live queue from YouTube. If the API is unavailable, it
+clearly marks the local upload-history fallback instead of presenting it as live
+channel data.
 
 ## Project layout
 

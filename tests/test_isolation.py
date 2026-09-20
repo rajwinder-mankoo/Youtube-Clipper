@@ -6,11 +6,12 @@ Regression test for:
 Run: python3 test_isolation.py
 """
 import sys
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from youtube_clipper.metadata.seo import generate_metadata
 from youtube_clipper.publishing.policy import publishing_action, unattended_upload_enabled
 from youtube_clipper.publishing.payload import build_video_insert_body
+from youtube_clipper.publishing.scheduler import next_schedule_slots
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
@@ -180,7 +181,7 @@ check("Explicit false overrides a true configured default", not unattended_uploa
 check("Private mode keeps every upload private", publishing_action("private", 0, 2) == ("private", False))
 check("Public mode publishes every upload", publishing_action("public", 0, 2) == ("public", False))
 check("Scheduled mode schedules older uploads", publishing_action("scheduled", 0, 2) == ("private", True))
-check("Scheduled mode publishes only the newest upload now", publishing_action("scheduled", 1, 2) == ("public", False))
+check("Scheduled mode queues every upload", publishing_action("scheduled", 1, 2) == ("private", True))
 
 scheduled_metadata = {
     "title": "Example",
@@ -197,6 +198,30 @@ check("API payload preserves private scheduling", scheduled_body["status"] == {
     "selfDeclaredMadeForKids": False,
     "publishAt": "2030-01-02T03:04:00Z",
 })
+
+fixed_now = datetime(2030, 1, 1, 12, 0, tzinfo=timezone.utc)
+channel_queue = [{
+    "id": "existing",
+    "status": {
+        "privacyStatus": "private",
+        "publishAt": "2030-01-02T08:00:00Z",
+    },
+}]
+appended = next_schedule_slots(
+    channel_queue,
+    2,
+    interval_minutes=360,
+    start_delay_minutes=10,
+    now=fixed_now,
+)
+check("New schedule starts after the latest channel item", appended == [
+    datetime(2030, 1, 2, 14, 0, tzinfo=timezone.utc),
+    datetime(2030, 1, 2, 20, 0, tzinfo=timezone.utc),
+])
+empty_queue = next_schedule_slots(
+    [], 1, interval_minutes=360, start_delay_minutes=10, now=fixed_now
+)
+check("An empty queue uses the configured start delay", empty_queue == [fixed_now + timedelta(minutes=10)])
 
 
 # ------------------------------------------------------------------

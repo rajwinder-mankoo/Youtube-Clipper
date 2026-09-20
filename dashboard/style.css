@@ -510,3 +510,48 @@ code { padding: 2px 5px; border-radius: 4px; background: #202621; color: #c7cfc9
 .analytics-row { grid-template-columns: minmax(260px, 2fr) repeat(3, minmax(90px, .6fr)); }
 .analytics-row > div span { display: block; margin-top: 4px; color: var(--muted); font-size: 9px; }
 @media (max-width: 820px) { .analytics-row { grid-template-columns: 1fr 1fr; } .account { grid-template-columns: auto 1fr; } .account-actions { grid-column: 1 / -1; } }
+
+.schedule-toolbar { display: grid; grid-template-columns: minmax(180px, 1.3fr) repeat(2, minmax(145px, .8fr)) auto auto; gap: 9px; align-items: end; }
+.schedule-toolbar label { display: grid; gap: 7px; color: var(--muted); font-size: 9px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+.schedule-toolbar input, .schedule-toolbar select { width: 100%; min-width: 0; }
+.schedule-status { margin: 16px 0; padding: 11px 13px; border-left: 2px solid var(--success); border-radius: 0 var(--radius-sm) var(--radius-sm) 0; background: #121914; color: var(--muted-strong); font-size: 11px; }
+.schedule-status.warning { border-color: var(--warning); background: #1a1811; }
+.schedule-metrics { display: grid; grid-template-columns: .7fr 1.4fr 1fr; gap: 8px; margin-bottom: 18px; }
+.schedule-metrics article { min-height: 98px; padding: 15px; border: 1px solid var(--line); border-radius: var(--radius-md); background: #111613; }
+.schedule-metrics span, .schedule-metrics small { display: block; color: var(--muted); font-size: 9px; }
+.schedule-metrics span { font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+.schedule-metrics strong { display: block; margin: 13px 0 7px; font-size: 17px; line-height: 1.15; }
+.schedule-layout { display: grid; grid-template-columns: minmax(500px, 1.35fr) minmax(300px, .8fr); gap: 12px; }
+.calendar-card, .queue-card { min-width: 0; padding: 16px; border: 1px solid var(--line); border-radius: var(--radius-md); background: #0b0f0d; }
+.calendar-head, .queue-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+.calendar-head h3, .queue-head h3 { font-size: 14px; }
+.calendar-head .icon-button { min-width: 76px; }
+.calendar-weekdays, .calendar-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); }
+.calendar-weekdays span { padding: 8px 5px; color: #6d7870; font: 700 8px/1 ui-monospace, "Cascadia Code", monospace; letter-spacing: .08em; text-align: center; text-transform: uppercase; }
+.calendar-grid { border-top: 1px solid var(--line); border-left: 1px solid var(--line); }
+.calendar-day { min-height: 88px; padding: 7px; overflow: hidden; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); background: #101512; }
+.calendar-day.muted { background: #0a0d0b; }
+.calendar-day > span { display: block; margin-bottom: 8px; color: var(--muted); font: 600 9px/1 ui-monospace, "Cascadia Code", monospace; }
+.calendar-day.today > span { width: 20px; height: 20px; display: grid; place-items: center; margin: -2px 0 6px -2px; border-radius: 50%; background: var(--accent); color: var(--accent-ink); }
+.calendar-day.has-items { background: #141b16; }
+.calendar-day button { width: 100%; margin-top: 3px; padding: 5px; overflow: hidden; border: 0; border-left: 2px solid var(--accent); border-radius: 2px; background: #202922; color: #c7d1ca; font: 600 8px/1 ui-monospace, "Cascadia Code", monospace; text-align: left; text-overflow: ellipsis; white-space: nowrap; }
+.calendar-day small { display: block; margin-top: 5px; color: var(--muted); font-size: 8px; }
+.queue-head > span { color: var(--muted); font: 600 9px/1 ui-monospace, "Cascadia Code", monospace; }
+.schedule-queue { display: grid; gap: 6px; max-height: 520px; overflow: auto; scrollbar-color: #3b463f transparent; }
+.schedule-item { display: grid; grid-template-columns: 28px minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 11px 10px; border: 1px solid #263029; border-radius: var(--radius-sm); background: #111613; }
+.schedule-order { color: #6d7870; font: 600 9px/1 ui-monospace, "Cascadia Code", monospace; }
+.schedule-item b, .schedule-item time { display: block; }
+.schedule-item b { overflow: hidden; font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
+.schedule-item time { margin-top: 5px; color: var(--muted); font-size: 9px; }
+.schedule-item a { color: var(--accent); font-size: 9px; text-decoration: none; }
+.schedule-item a:hover { text-decoration: underline; }
+
+@media (max-width: 1100px) {
+  .schedule-toolbar { grid-template-columns: repeat(3, 1fr); }
+  .schedule-layout { grid-template-columns: 1fr; }
+}
+@media (max-width: 700px) {
+  .schedule-toolbar, .schedule-metrics { grid-template-columns: 1fr; }
+  .calendar-card { padding: 10px; overflow-x: auto; }
+  .calendar-weekdays, .calendar-grid { min-width: 560px; }
+}
